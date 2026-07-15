@@ -1,0 +1,431 @@
+{
+  "format": "velxio-project",
+  "version": 1,
+  "boards": [
+    {
+      "id": "esp32",
+      "boardKind": "esp32",
+      "x": -102.07788682538502,
+      "y": 452.3583934450723,
+      "activeFileGroupId": "group-esp32",
+      "languageMode": "arduino",
+      "serialBaudRate": 0
+    }
+  ],
+  "fileGroups": {
+    "group-esp32": [
+      {
+        "name": "sketch.ino",
+        "content": "#include <Wire.h>\n#include <Adafruit_GFX.h>\n#include <Adafruit_SSD1306.h>\n\n#define SCREEN_WIDTH 128\n#define SCREEN_HEIGHT 64\n\nAdafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);\n\n#define BTN_UP    5\n#define BTN_DOWN  4\n#define BTN_LEFT  18\n#define BTN_RIGHT 19\n\n#define CELL_SIZE 4\n\nconst int COLS = SCREEN_WIDTH / CELL_SIZE;\nconst int ROWS = SCREEN_HEIGHT / CELL_SIZE;\n\nconst unsigned long DEBOUNCE_DELAY = 30;\n\nstruct Button {\n  uint8_t pin;\n  bool stableState;\n  bool lastRawState;\n  unsigned long lastChangeTime;\n  bool ignoreHeld;\n};\n\nButton btnUp    = {BTN_UP, HIGH, HIGH, 0, false};\nButton btnDown  = {BTN_DOWN, HIGH, HIGH, 0, false};\nButton btnLeft  = {BTN_LEFT, HIGH, HIGH, 0, false};\nButton btnRight = {BTN_RIGHT, HIGH, HIGH, 0, false};\n\nstruct Point {\n  int x;\n  int y;\n};\n\nPoint snake[200];\nPoint food;\n\nint snakeLength = 5;\n\nenum Direction {\n  UP,\n  DOWN,\n  LEFT,\n  RIGHT\n};\n\nDirection dir = RIGHT;\n\nunsigned long lastMove = 0;\nconst int moveDelay = 150;\n\nbool gameOver = false;\nbool gameStarted = false;\n\nbool startScreenDrawn = false;\nbool gameOverDrawn = false;\n\nvoid resetGame();\nvoid spawnFood();\nvoid updateButton(Button &b);\nbool isPressed(Button &b);\nbool isPressedForDirection(Button &b);\nbool anyButtonPressed();\nvoid armIgnoreForHeldButtons();\nvoid readButtons();\nvoid moveSnake();\nvoid drawGame();\nvoid drawGameOver();\nvoid drawStartScreen();\n\nvoid setup() {\n\n  Serial.begin(115200);\n\n  pinMode(BTN_UP, INPUT_PULLUP);\n  pinMode(BTN_DOWN, INPUT_PULLUP);\n  pinMode(BTN_LEFT, INPUT_PULLUP);\n  pinMode(BTN_RIGHT, INPUT_PULLUP);\n\n  Wire.begin(21,22);\n\n  // Faster OLED updates\n  Wire.setClock(400000);\n\n  if(!display.begin(SSD1306_SWITCHCAPVCC,0x3C)){\n    while(true);\n  }\n\n  display.clearDisplay();\n  display.display();\n\n  randomSeed(millis());\n\n  resetGame();\n}\n\nvoid loop() {\n\n  updateButton(btnUp);\n  updateButton(btnDown);\n  updateButton(btnLeft);\n  updateButton(btnRight);\n\n  // ---------- START SCREEN ----------\n  if(!gameStarted){\n\n    if(!startScreenDrawn){\n      drawStartScreen();\n      startScreenDrawn=true;\n    }\n\n    if(anyButtonPressed()){\n\n      gameStarted=true;\n      startScreenDrawn=false;\n\n      resetGame();\n      armIgnoreForHeldButtons();\n    }\n\n    return;\n  }\n\n  // ---------- GAME OVER ----------\n  if(gameOver){\n\n    if(!gameOverDrawn){\n      drawGameOver();\n      gameOverDrawn=true;\n    }\n\n    if(anyButtonPressed()){\n\n      gameOver=false;\n      gameStarted=false;\n      gameOverDrawn=false;\n    }\n\n    return;\n  }\n\n  // Read buttons every loop (VERY FAST)\n  readButtons();\n\n  // Move only every 150 ms\n  if(millis()-lastMove>=moveDelay){\n\n    lastMove=millis();\n\n    moveSnake();\n\n    drawGame();\n  }\n}\n\nvoid drawStartScreen(){\n\n  display.clearDisplay();\n\n  display.setTextSize(2);\n  display.setCursor(18,10);\n  display.println(\"SNAKE\");\n\n  display.setTextSize(1);\n  display.setCursor(6,38);\n  display.println(\"Press Any Button\");\n\n  display.setCursor(25,50);\n  display.println(\"to Start\");\n\n  display.display();\n}\n\nvoid updateButton(Button &b){\n\n  bool raw=digitalRead(b.pin);\n\n  if(raw!=b.lastRawState){\n\n    b.lastRawState=raw;\n    b.lastChangeTime=millis();\n  }\n\n  if(millis()-b.lastChangeTime>=DEBOUNCE_DELAY){\n\n    b.stableState=raw;\n  }\n}\n\nbool isPressed(Button &b){\n  return b.stableState==LOW;\n}\n\nbool anyButtonPressed(){\n\n  return isPressed(btnUp) ||\n         isPressed(btnDown) ||\n         isPressed(btnLeft) ||\n         isPressed(btnRight);\n}\n\nvoid armIgnoreForHeldButtons(){\n\n  if(isPressed(btnUp)) btnUp.ignoreHeld=true;\n  if(isPressed(btnDown)) btnDown.ignoreHeld=true;\n  if(isPressed(btnLeft)) btnLeft.ignoreHeld=true;\n  if(isPressed(btnRight)) btnRight.ignoreHeld=true;\n}\n\nbool isPressedForDirection(Button &b){\n\n  if(b.ignoreHeld){\n\n    if(!isPressed(b))\n      b.ignoreHeld=false;\n\n    return false;\n  }\n\n  return isPressed(b);\n}\n\nvoid readButtons(){\n\n  if(isPressedForDirection(btnUp) && dir!=DOWN)\n    dir=UP;\n\n  else if(isPressedForDirection(btnDown) && dir!=UP)\n    dir=DOWN;\n\n  else if(isPressedForDirection(btnLeft) && dir!=RIGHT)\n    dir=LEFT;\n\n  else if(isPressedForDirection(btnRight) && dir!=LEFT)\n    dir=RIGHT;\n}\n\nvoid moveSnake() {\n\n  Point newHead = snake[0];\n\n  switch (dir) {\n\n    case UP:\n      newHead.y--;\n      break;\n\n    case DOWN:\n      newHead.y++;\n      break;\n\n    case LEFT:\n      newHead.x--;\n      break;\n\n    case RIGHT:\n      newHead.x++;\n      break;\n  }\n\n  // Wall collision\n  if (newHead.x < 0 ||\n      newHead.x >= COLS ||\n      newHead.y < 0 ||\n      newHead.y >= ROWS) {\n\n    gameOver = true;\n    return;\n  }\n\n  // Self collision\n  for (int i = 1; i < snakeLength; i++) {\n\n    if (snake[i].x == newHead.x &&\n        snake[i].y == newHead.y) {\n\n      gameOver = true;\n      return;\n    }\n  }\n\n  bool ateFood =\n      (newHead.x == food.x &&\n       newHead.y == food.y);\n\n  // Shift body\n  for (int i = snakeLength; i > 0; i--) {\n    snake[i] = snake[i - 1];\n  }\n\n  // Move head\n  snake[0] = newHead;\n\n  // Grow snake\n  if (ateFood) {\n    snakeLength++;\n    spawnFood();\n  }\n}\n\nvoid resetGame() {\n\n  snakeLength = 5;\n\n  snake[0] = {10, 8};\n  snake[1] = {9, 8};\n  snake[2] = {8, 8};\n  snake[3] = {7, 8};\n  snake[4] = {6, 8};\n\n  dir = RIGHT;\n\n  gameOver = false;\n  gameOverDrawn = false;\n\n  spawnFood();\n\n  // Draw the first frame immediately\n  drawGame();\n\n  // Prevent an instant move after reset\n  lastMove = millis();\n}\n\nvoid spawnFood() {\n\n  bool validPosition = false;\n\n  while (!validPosition) {\n\n    validPosition = true;\n\n    food.x = random(COLS);\n    food.y = random(ROWS);\n\n    for (int i = 0; i < snakeLength; i++) {\n\n      if (snake[i].x == food.x &&\n          snake[i].y == food.y) {\n\n        validPosition = false;\n        break;\n      }\n    }\n  }\n}\n\nvoid drawGame() {\n\n  display.clearDisplay();\n\n  // Draw snake\n  for (int i = 0; i < snakeLength; i++) {\n\n    display.fillRect(\n      snake[i].x * CELL_SIZE,\n      snake[i].y * CELL_SIZE,\n      CELL_SIZE,\n      CELL_SIZE,\n      WHITE\n    );\n  }\n\n  // Draw food\n  display.fillCircle(\n    food.x * CELL_SIZE + CELL_SIZE / 2,\n    food.y * CELL_SIZE + CELL_SIZE / 2,\n    CELL_SIZE / 2,\n    WHITE\n  );\n\n  // Draw score\n  display.setTextSize(1);\n  display.setTextColor(WHITE);\n  display.setCursor(0, 0);\n  display.print(\"Score: \");\n  display.print(snakeLength - 5);\n\n  // Send the framebuffer to the OLED\n  display.display();\n}\n\nvoid drawGameOver() {\n\n  display.clearDisplay();\n\n  display.setTextColor(WHITE);\n\n  display.setTextSize(2);\n  display.setCursor(18, 10);\n  display.println(\"GAME\");\n\n  display.setCursor(18, 30);\n  display.println(\"OVER\");\n\n  display.setTextSize(1);\n  display.setCursor(20, 52);\n  display.print(\"Score: \");\n  display.print(snakeLength - 5);\n\n  display.display();\n}\n"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "ssd1306_i2c_1783710566091_ah3sva8ur",
+      "metadataId": "ssd1306-i2c",
+      "x": 194.2312291719578,
+      "y": 690.1031896530238,
+      "properties": {
+        "protocol": "i2c",
+        "rotation": 0
+      }
+    },
+    {
+      "id": "breadboard_full_1784121915029_4qp62foe4",
+      "metadataId": "breadboard-full",
+      "x": 142.76497256677484,
+      "y": 464.6211384919858,
+      "properties": {
+        "state": false,
+        "value": false
+      }
+    },
+    {
+      "id": "pushbutton_1784125255898_2ful6prut",
+      "metadataId": "pushbutton",
+      "x": 339.7649725667749,
+      "y": 540.6211384919858,
+      "properties": {
+        "color": "red",
+        "pressed": false,
+        "label": "LEFT",
+        "xray": false,
+        "rotation": 90
+      },
+      "attachedTo": {
+        "breadboardId": "breadboard_full_1784121915029_4qp62foe4",
+        "pinMap": {
+          "1.l": "D26",
+          "2.l": "D24",
+          "1.r": "H26",
+          "2.r": "H24"
+        }
+      }
+    },
+    {
+      "id": "pushbutton_1784125272148_xdilmy114",
+      "metadataId": "pushbutton",
+      "x": 397.3649725667748,
+      "y": 550.6211384919858,
+      "properties": {
+        "color": "red",
+        "pressed": false,
+        "label": "DOWN",
+        "xray": false,
+        "rotation": 90
+      },
+      "attachedTo": {
+        "breadboardId": "breadboard_full_1784121915029_4qp62foe4",
+        "pinMap": {
+          "1.l": "E32",
+          "2.l": "E30",
+          "1.r": "I32",
+          "2.r": "I30"
+        }
+      }
+    },
+    {
+      "id": "pushbutton_1784125287995_qauo254t6",
+      "metadataId": "pushbutton",
+      "x": 579.7649725667749,
+      "y": 530.6211384919858,
+      "properties": {
+        "color": "red",
+        "pressed": false,
+        "label": "UP",
+        "xray": false,
+        "rotation": 90
+      },
+      "attachedTo": {
+        "breadboardId": "breadboard_full_1784121915029_4qp62foe4",
+        "pinMap": {
+          "1.l": "C51",
+          "2.l": "C49",
+          "1.r": "G51",
+          "2.r": "G49"
+        }
+      }
+    },
+    {
+      "id": "pushbutton_1784125297790_j6pg0hq9w",
+      "metadataId": "pushbutton",
+      "x": 637.3649725667749,
+      "y": 520.6211384919858,
+      "properties": {
+        "color": "red",
+        "pressed": false,
+        "label": "RIGHT",
+        "xray": false,
+        "rotation": 90
+      },
+      "attachedTo": {
+        "breadboardId": "breadboard_full_1784121915029_4qp62foe4",
+        "pinMap": {
+          "1.l": "B57",
+          "2.l": "B55",
+          "1.r": "F57",
+          "2.r": "F55"
+        }
+      }
+    }
+  ],
+  "wires": [
+    {
+      "waypoints": [],
+      "id": "wire-1784122599510",
+      "start": {
+        "componentId": "esp32",
+        "pinName": "3V3",
+        "x": 31.922113174614978,
+        "y": 659.3583934450724
+      },
+      "end": {
+        "componentId": "breadboard_full_1784121915029_4qp62foe4",
+        "pinName": "BP1",
+        "x": 173.76497256677484,
+        "y": 658.6211384919858
+      },
+      "color": "#cc0000"
+    },
+    {
+      "waypoints": [
+        {
+          "x": 138.69573757039478,
+          "y": 672.8269134166675
+        }
+      ],
+      "id": "wire-1784125322593",
+      "start": {
+        "componentId": "esp32",
+        "pinName": "GND2",
+        "x": 31.922113174614978,
+        "y": 646.3583934450724
+      },
+      "end": {
+        "componentId": "breadboard_full_1784121915029_4qp62foe4",
+        "pinName": "BN1",
+        "x": 173.76497256677484,
+        "y": 671.6211384919858
+      },
+      "color": "#000000"
+    },
+    {
+      "waypoints": [],
+      "id": "wire-1784125338004",
+      "start": {
+        "componentId": "ssd1306_i2c_1783710566091_ah3sva8ur",
+        "pinName": "GND",
+        "x": 260.2312291719578,
+        "y": 701.1031896530238
+      },
+      "end": {
+        "componentId": "breadboard_full_1784121915029_4qp62foe4",
+        "pinName": "BN10",
+        "x": 260.16497256677485,
+        "y": 671.6211384919858
+      },
+      "color": "#000000"
+    },
+    {
+      "waypoints": [],
+      "id": "wire-1784125342410",
+      "start": {
+        "componentId": "ssd1306_i2c_1783710566091_ah3sva8ur",
+        "pinName": "VCC",
+        "x": 270.2312291719578,
+        "y": 701.1031896530238
+      },
+      "end": {
+        "componentId": "breadboard_full_1784121915029_4qp62foe4",
+        "pinName": "BP11",
+        "x": 269.7649725667749,
+        "y": 658.6211384919858
+      },
+      "color": "#cc0000"
+    },
+    {
+      "waypoints": [],
+      "id": "wire-1784125364904",
+      "start": {
+        "componentId": "ssd1306_i2c_1783710566091_ah3sva8ur",
+        "pinName": "SCL",
+        "x": 280.2312291719578,
+        "y": 701.1031896530238
+      },
+      "end": {
+        "componentId": "breadboard_full_1784121915029_4qp62foe4",
+        "pinName": "I12",
+        "x": 279.36497256677484,
+        "y": 625.6211384919858
+      },
+      "color": "#22c55e"
+    },
+    {
+      "waypoints": [],
+      "id": "wire-1784125366724",
+      "start": {
+        "componentId": "ssd1306_i2c_1783710566091_ah3sva8ur",
+        "pinName": "SDA",
+        "x": 290.2312291719578,
+        "y": 701.1031896530238
+      },
+      "end": {
+        "componentId": "breadboard_full_1784121915029_4qp62foe4",
+        "pinName": "I13",
+        "x": 288.9649725667748,
+        "y": 625.6211384919858
+      },
+      "color": "#22c55e"
+    },
+    {
+      "waypoints": [],
+      "id": "wire-1784125380334",
+      "start": {
+        "componentId": "esp32",
+        "pinName": "22",
+        "x": 31.922113174614978,
+        "y": 494.3583934450723
+      },
+      "end": {
+        "componentId": "breadboard_full_1784121915029_4qp62foe4",
+        "pinName": "H12",
+        "x": 279.36497256677484,
+        "y": 615.6211384919858
+      },
+      "color": "#22c55e"
+    },
+    {
+      "waypoints": [],
+      "id": "wire-1784125397852",
+      "start": {
+        "componentId": "pushbutton_1784125255898_2ful6prut",
+        "pinName": "2.r",
+        "x": 394.7649725667749,
+        "y": 619.6211384919858
+      },
+      "end": {
+        "componentId": "breadboard_full_1784121915029_4qp62foe4",
+        "pinName": "BN24",
+        "x": 394.5649725667748,
+        "y": 671.6211384919858
+      },
+      "color": "#000000"
+    },
+    {
+      "waypoints": [],
+      "id": "wire-1784125403563",
+      "start": {
+        "componentId": "pushbutton_1784125272148_xdilmy114",
+        "pinName": "2.r",
+        "x": 452.3649725667748,
+        "y": 629.6211384919858
+      },
+      "end": {
+        "componentId": "breadboard_full_1784121915029_4qp62foe4",
+        "pinName": "BN30",
+        "x": 452.16497256677485,
+        "y": 671.6211384919858
+      },
+      "color": "#000000"
+    },
+    {
+      "waypoints": [],
+      "id": "wire-1784125417845",
+      "start": {
+        "componentId": "pushbutton_1784125287995_qauo254t6",
+        "pinName": "2.r",
+        "x": 634.7649725667749,
+        "y": 609.6211384919858
+      },
+      "end": {
+        "componentId": "breadboard_full_1784121915029_4qp62foe4",
+        "pinName": "BN49",
+        "x": 634.5649725667748,
+        "y": 671.6211384919858
+      },
+      "color": "#000000"
+    },
+    {
+      "waypoints": [],
+      "id": "wire-1784125428084",
+      "start": {
+        "componentId": "pushbutton_1784125297790_j6pg0hq9w",
+        "pinName": "2.r",
+        "x": 692.3649725667749,
+        "y": 599.6211384919858
+      },
+      "end": {
+        "componentId": "breadboard_full_1784121915029_4qp62foe4",
+        "pinName": "BN55",
+        "x": 692.1649725667748,
+        "y": 671.6211384919858
+      },
+      "color": "#000000"
+    },
+    {
+      "waypoints": [],
+      "id": "wire-1784129888972",
+      "start": {
+        "componentId": "pushbutton_1784125287995_qauo254t6",
+        "pinName": "2.l",
+        "x": 634.7649725667749,
+        "y": 542.6211384919858
+      },
+      "end": {
+        "componentId": "esp32",
+        "pinName": "5",
+        "x": 31.922113174614978,
+        "y": 570.3583934450724
+      },
+      "color": "#22c55e"
+    },
+    {
+      "waypoints": [],
+      "id": "wire-1784129899749",
+      "start": {
+        "componentId": "pushbutton_1784125272148_xdilmy114",
+        "pinName": "2.l",
+        "x": 452.3649725667748,
+        "y": 562.6211384919858
+      },
+      "end": {
+        "componentId": "esp32",
+        "pinName": "4",
+        "x": 31.922113174614978,
+        "y": 608.3583934450724
+      },
+      "color": "#22c55e"
+    },
+    {
+      "waypoints": [],
+      "id": "wire-1784129910303",
+      "start": {
+        "componentId": "pushbutton_1784125255898_2ful6prut",
+        "pinName": "2.l",
+        "x": 394.7649725667749,
+        "y": 552.6211384919858
+      },
+      "end": {
+        "componentId": "esp32",
+        "pinName": "18",
+        "x": 31.922113174614978,
+        "y": 557.3583934450724
+      },
+      "color": "#22c55e"
+    },
+    {
+      "waypoints": [],
+      "id": "wire-1784129947953",
+      "start": {
+        "componentId": "pushbutton_1784125297790_j6pg0hq9w",
+        "pinName": "2.l",
+        "x": 692.3649725667749,
+        "y": 532.6211384919858
+      },
+      "end": {
+        "componentId": "esp32",
+        "pinName": "19",
+        "x": 31.922113174614978,
+        "y": 545.3583934450724
+      },
+      "color": "#22c55e"
+    },
+    {
+      "waypoints": [
+        {
+          "x": 288.9649725667748,
+          "y": 518.6572991743575
+        },
+        {
+          "x": 80.35166433862301,
+          "y": 518.6572991743575
+        },
+        {
+          "x": 80.35166433862301,
+          "y": 519.2946262834225
+        },
+        {
+          "x": 31.922113174614978,
+          "y": 519.2946262834225
+        }
+      ],
+      "id": "wire-1784129995755",
+      "start": {
+        "componentId": "breadboard_full_1784121915029_4qp62foe4",
+        "pinName": "H13",
+        "x": 288.9649725667748,
+        "y": 615.6211384919858
+      },
+      "end": {
+        "componentId": "esp32",
+        "pinName": "21",
+        "x": 31.922113174614978,
+        "y": 532.3583934450724
+      },
+      "color": "#22c55e"
+    }
+  ],
+  "activeBoardId": "esp32",
+  "ignoreStock": false
+}
