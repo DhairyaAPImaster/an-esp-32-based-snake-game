@@ -11,7 +11,7 @@
 
 ## What It Does
 
-well its an esp and the og snake game..... and my first breadboard project but i have made PCB's so what could go wrong???
+Well its an esp32 based og snake game that keeps the player ocupied. so basically the user needs to eat fruits to gain length and to not die they must like not crash into the boundary or into themselves..... and my first breadboard project!!!!
 
 
 ## How It Works
