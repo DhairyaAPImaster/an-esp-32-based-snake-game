@@ -1,10 +1,8 @@
 # An ESP 32 based snake game.
 
 
-***IMPRTANT NOTE THE THE REVIEWER ---->  SO WELL IN THE SIMULATOR U WILL NEED TO LIKE CLICK THE BUTTONS MULTIPLE TIMES FOR IT TO REGISTER.... I TRIED VARIOUS METHONDS OF SOLVING THIS BY CODE BUT IT MIGHT BE A BUG IN THE SIMULATOR SO PLEASE DO NOT REJECT IT DUE TO THIS..... THNAKS***
 
-
-
+![An ESP 32 based snake game.](screenshot.png)
 
 
 > Built in [Breadboard](https://breadboard.hackclub.com), a Hack Club program. This project took ~5.6 hours of work.
