@@ -120,7 +120,7 @@ After the game ends just press any button again to start another game.
 
 ## Demo
 
-- **Simulate it live:** [https://breadboard.hackclub.com/share/114](https://breadboard.hackclub.com/share/114), runs the firmware in the Breadboard simulator
+- **Simulate it live:** [https://breadboard.hackclub.com/share/114]([https://breadboard.hackclub.com/share/114](https://breadboard.hackclub.com/share/114)), runs the firmware in the Breadboard simulator
 - **View the design:** [https://taniwankenobi.github.io/breadboard-plays/p/114/](https://taniwankenobi.github.io/breadboard-plays/p/114/)
 
 
@@ -153,6 +153,20 @@ Build journal entries are kept in [`journals.md`](journals.md).
 
 
 *Made in [Breadboard](https://breadboard.hackclub.com) — 5.6h of work*
+
+
+
+### IMAGES!!!!
+
+
+<img width="532" height="359" alt="image" src="https://github.com/user-attachments/assets/a03ccb9e-3d08-40ca-8228-afddb076bb03" />
+
+<img width="1006" height="553" alt="image" src="https://github.com/user-attachments/assets/2d519340-d80e-473d-a07b-2151adb92539" />
+
+
+<img width="424" height="245" alt="image" src="https://github.com/user-attachments/assets/ccc535b9-b248-45d5-8691-831d6d833cbd" />
+
+
 
 
 
