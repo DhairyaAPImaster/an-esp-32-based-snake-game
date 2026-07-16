@@ -16,7 +16,16 @@ Well its an esp32 based og snake game that keeps the player ocupied. so basicall
 
 ## How It Works
 
-The circuit is captured in `breadboard-project.json`, and the firmware that runs it is in the `firmware/` folder.
+***BTW--> The circuit is captured in `breadboard-project.json`, and the firmware that runs it is in the `firmware/` folder.***
+
+
+The game runs on an ESP32 and displays everything on a 128x64 OLED display over I2C. The snake moves around the screen eating food and grows longer every time it eats. If it hits the wall or itself the game ends and your score is shown.
+The four push buttons are connected to GPIO 5, 4, 18 and 19 using the ESP32's internal pull-up resistors so no extra resistors are needed. The firmware constantly checks the buttons and changes the snake's direction whenever one is pressed.
+To make the controls feel smooth the firmware uses software debouncing and runs the OLED at 400kHz I2C instead of the default 100kHz. The display is also only updated when needed instead of every loop which makes the button response much faster and the game feel a lot more responsive.
+
+
+**(BTW DUE TO ISSUES IN THE SIMULATOR THE BUTTON CLICKS ARE ONLY REGISTERED WHEN YOU CLICK THEM LIKE 4-5 TIMES QUICKLY ITS NOT A CODE OR A WIRING ISSUE)**
+
 
 
 ## How To Use It
