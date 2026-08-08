@@ -131,12 +131,14 @@ The editor snapshot is in `breadboard-project.json`.
 
 ## Bill of Materials
 
-| Part | Quantity |
-| --- | --- |
-| breadboard-full | 1 |
-| pushbutton | 4 |
-| ssd1306-i2c | 1 |
-
+| Part | Quantity | Link | Price (USD) |
+|---|---|---|---|---|
+| Breadboard – Full (MB102, 830pt) | 1 | [Robocraze](https://robocraze.com/products/mb102-830-points-solderless-breadboard) | $0.68 |
+| Pushbutton (6x6x5mm tactile, pack of 10) | 4 (1 pack) | [Robu.in](https://robu.in/product/6x6x5-tactile-push-button-switch/) | $0.16 |
+| SSD1306 I2C OLED Display (0.96", 4-pin) | 1 | [Robocraze](https://robocraze.com/products/0-96in-oled-display-module-4pin) | $1.70 |
+| ESP32 DevBoard (SmartElex, 38-pin) | 1 | [Robu.in](https://robu.in/product/smartelex-esp32-38pin-development-kit-wifibluetooth-ultra-low-power-consumption-dual-core-1-pcs/) | $7.60 |
+| Jumper Wires (F2M, 20cm, pack of 20) | 14 (1 pack) | [Robocraze](https://robocraze.com/products/f2m-jumper-wires-20cm-20pcs) | $0.26 |
+| **Total** | | | **$10.40** |
 
 ## Firmware
 
