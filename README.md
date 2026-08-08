@@ -132,7 +132,7 @@ The editor snapshot is in `breadboard-project.json`.
 ## Bill of Materials
 
 | Part | Quantity | Link | Price (USD) |
-|---|---|---|---|---|
+|---|---|---|---|
 | Breadboard – Full (MB102, 830pt) | 1 | [Robocraze](https://robocraze.com/products/mb102-830-points-solderless-breadboard) | $0.68 |
 | Pushbutton (6x6x5mm tactile, pack of 10) | 4 (1 pack) | [Robu.in](https://robu.in/product/6x6x5-tactile-push-button-switch/) | $0.16 |
 | SSD1306 I2C OLED Display (0.96", 4-pin) | 1 | [Robocraze](https://robocraze.com/products/0-96in-oled-display-module-4pin) | $1.70 |
